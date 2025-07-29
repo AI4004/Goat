@@ -1,5 +1,6 @@
 const fs = require("fs");
-const configPath = __dirname + "/../../config.json";
+const path = require("path");
+const configPath = path.join(__dirname, "../../config.dev.json");
 
 module.exports = {
   config: {
@@ -22,9 +23,14 @@ module.exports = {
     try {
       const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
       config.optionsFca.autoMarkDelivery = status === "on";
-      fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+
+      // Optional auto reload
+      global.GoatBot.config = config;
+
       return message.reply(`✅ | autoMarkDelivery is now ${status}`);
     } catch (err) {
+      console.error("Config Update Error:", err); // Debug log
       return message.reply("❌ | Failed to update autoMarkDelivery setting.");
     }
   }
