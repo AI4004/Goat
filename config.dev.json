@@ -1,7 +1,7 @@
 {
   "facebookAccount": {
-    "email": "",
-    "password": "",
+    "email": "61578122551989",
+    "password": "saidibotid@123",
     "2FASecret": "",
     "i_user": "",
     "proxy": "",
@@ -17,15 +17,15 @@
     "ignoreCommand": []
   },
   "adminBot": [
-    "61577565253243"
+    "61570292561520"
   ],
   "whiteListMode": {
     "enable": false,
     "whiteListIds": [],
     "notes": "if you enable this feature, only the ids in the whiteListIds section can use the bot"
   },
-  "nickNameBot": "বঙ্গবন্ধু মরে নাই আমি মরি নাই",
-  "prefix": "/",
+  "nickNameBot": "AI 2",
+  "prefix": ",",
   "api": "https://www.noobs-api.000.pe/dipto",
   "rubishapi": "https://rubish-apihub.onrender.com/rubish",
   "database": {
@@ -38,15 +38,15 @@
   "timeZone": "Asia/Dhaka",
   "credentials": {
     "gmailAccount": {
-      "email": "",
-      "clientId": "",
-      "clientSecret": "",
-      "refreshToken": "",
+      "email": "romeobot555@gmail.com",
+      "clientId": "552344212361-ujv8mjve7ue0r20t5caem9a41o8il508.apps.googleusercontent.com",
+      "clientSecret": "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",
+      "refreshToken": "1//04KHgkn8_-_PfCgYIARAAGAQSNwF-L9Iro-cV9UkOYQjg6noVALzdmrnrL8rijCPS96WGrKoflqLkXr76iZiXezLunTbJAU1AxS4",
       "apiKey": ""
     },
     "gRecaptcha": {
-      "siteKey": "",
-      "secretKey": ""
+      "siteKey": "6LcjUNYnAAAAACJRnuYb4PH2C1ZlesOimLIcziSd",
+      "secretKey": "6LcjUNYnAAAAAMWhPUFOdbhYbmeHtYoWzrH4YUDQ"
     }
   },
   "dashBoard": {
@@ -100,44 +100,4 @@
       "enable": false,
       "botToken": "",
       "chatId": "",
-      "note": "Can send notifications to many chatId, separate by comma or space, example: \"123456789 987654321\" (without backslash)"
-    },
-    "discordHook": {
-      "enable": false,
-      "webhookUrl": "",
-      "note": "Can send notifications to many webhookUrl, separate by comma or space, example: \"https://discord.com/api/webhooks/123456789/123456789 https://discord.com/api/webhooks/987654321/987654321\" (without backslash)"
-    }
-  },
-  "hideNotiMessage": {
-    "commandNotFound": false,
-    "adminOnly": false,
-    "threadBanned": false,
-    "userBanned": false,
-    "needRoleToUseCmd": false,
-    "needRoleToUseCmdOnReply": false,
-    "needRoleToUseCmdOnReaction": false
-  },
-  "logEvents": {
-    "disableAll": false,
-    "message": true,
-    "message_reaction": true,
-    "message_unsend": true,
-    "message_reply": true,
-    "event": true,
-    "read_receipt": false,
-    "typ": false,
-    "presence": false
-  },
-  "optionsFca": {
-    "forceLogin": true,
-    "listenEvents": true,
-    "updatePresence": true,
-    "listenTyping": true,
-    "logLevel": "error",
-    "selfListen": false,
-    "selfListenEvent": true,
-    "autoMarkDelivery": false,
-    "autoReconnect": false,
-    "notes": "Document here: https://github.com/ntkhang03/fb-chat-api/blob/master/DOCS.md#apisetoptionsoptions "
-  }
-}
+      "note": "Can s
