@@ -5,7 +5,7 @@ const baseApiUrl = async () => {
 
 module.exports.config = {
     name: "bby",
-    aliases: ["baby", "bbe", "jan", "koliza", "বাবু"],
+    aliases: ["baby", "bbe", "jan", "koliza", "বাবু", "জান", "কলিজা", "সোনা", "sona", "xoliza"], // এখানে নতুন alias গুলো যোগ করা হয়েছে
     version: "6.9.0",
     author: "dipto",
     countDown: 0,
@@ -159,11 +159,15 @@ module.exports.onChat = async ({
 }) => {
     try {
         const body = event.body ? event.body?.toLowerCase() : ""
-        if (body.startsWith("baby") || body.startsWith("bby") || body.startsWith("বেবি") || body.startsWith("bot") || body.startsWith("nisan") || body.startsWith("babu") || body.startsWith("বট")) {
-            const arr = body.replace(/^\S+\s*/, "")
-            const randomReplies = ["😚", "𝙃𝙤𝙥 𝙗𝙚𝙙𝙖😾, 𝘽𝙤𝙨𝙨 বল 𝙗𝙤𝙨𝙨😼", "𝙒𝙝𝙖𝙩'𝙨 𝙪𝙥?", "বলো কি বলবা, সবার সামনে বলবা নাকি?🤭🤏", "𝙣𝙖𝙬 𝙢𝙚𝙨𝙨𝙖𝙜𝙚 𝙙𝙖𝙬 //m.me/shamsuddin.munna.2025", "আমাকে ডাকলে, আমি কিন্তূ কিস করে দেবো😘", "𝘽𝘼𝘽𝙐 𝙆𝙃𝙐𝘿𝘼 𝙇𝘼𝙂𝙎𝙀🥺"];
-            if (!arr) {
+        // এখানে সব নতুন alias গুলো prefix হিসাবে যোগ করা হয়েছে
+        const prefixes = ["baby", "bby", "বেবি", "bot", "nisan", "babu", "বট", "jan", "koliza", "xoliza", "বাবু", "জান", "কলিজা", "সোনা", "sona"];
+        const matchedPrefix = prefixes.find(prefix => body.startsWith(prefix));
 
+        if (matchedPrefix) {
+            const arr = body.replace(new RegExp(`^${matchedPrefix}\\s*`), ""); 
+            const randomReplies = ["😚", "𝙃𝙤𝙥 𝙗𝙚𝙙𝙖😾, 𝘽𝙤𝙨𝙨 বল 𝙗𝙤𝙨𝙨😼", "𝙒𝙝𝙖𝙩's 𝙪𝙥?", "বলো কি বলবা, সবার সামনে বলবা নাকি?🤭🤏", "𝙣𝙖𝙬 𝙢𝙚𝙨𝙨𝙖𝙜𝙚 𝙙𝙖𝙬 //m.me/shamsuddin.munna.2025", "আমাকে ডাকলে, আমি কিন্তূ কিস করে দেবো😘", "𝘽𝘼𝘽𝙐 𝙆𝙃𝙐𝘿𝘼 𝙇𝘼𝙂𝙎𝙀🥺"];
+            
+            if (!arr.trim()) { 
                 await api.sendMessage(randomReplies[Math.floor(Math.random() * randomReplies.length)], event.threadID, (error, info) => {
                     if (!info) message.reply("info obj not found")
                     global.GoatBot.onReply.set(info.messageID, {
@@ -173,17 +177,18 @@ module.exports.onChat = async ({
                         author: event.senderID
                     });
                 }, event.messageID)
+            } else {
+                const a = (await axios.get(`${await baseApiUrl()}/baby?text=${encodeURIComponent(arr)}&senderID=${event.senderID}&font=1`)).data.reply;
+                await api.sendMessage(a, event.threadID, (error, info) => {
+                    global.GoatBot.onReply.set(info.messageID, {
+                        commandName: this.config.name,
+                        type: "reply",
+                        messageID: info.messageID,
+                        author: event.senderID,
+                        a
+                    });
+                }, event.messageID)
             }
-            const a = (await axios.get(`${await baseApiUrl()}/baby?text=${encodeURIComponent(arr)}&senderID=${event.senderID}&font=1`)).data.reply;
-            await api.sendMessage(a, event.threadID, (error, info) => {
-                global.GoatBot.onReply.set(info.messageID, {
-                    commandName: this.config.name,
-                    type: "reply",
-                    messageID: info.messageID,
-                    author: event.senderID,
-                    a
-                });
-            }, event.messageID)
         }
     } catch (err) {
         return api.sendMessage(`Error: ${err.message}`, event.threadID, event.messageID);
