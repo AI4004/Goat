@@ -1,82 +1,111 @@
-const { exec } = require("child_process");
-const fs = require("fs");
-const path = require("path");
 const axios = require("axios");
+const fs = require('fs-extra');
+const path = require('path');
+const { getStreamFromURL, shortenURL, randomString } = global.utils;
 
-module.exports = {
-  config: {
-    name: "video",
-    version: "1.0",
-    author: "Kawsar & ChatGPT",
-    cooldowns: 5,
-    description: { en: "Download best video under 25MB from any link" },
-    category: "media",
-    guide: { en: "{pn} [video link]" }
-  },
+const API_KEYS = [
+    'b38444b5b7mshc6ce6bcd5c9e446p154fa1jsn7bbcfb025b3b',
+   
+];
 
-  onStart: async function ({ args, message, event }) {
-    const url = args[0];
-    if (!url) return message.reply("❌ Please provide a video link!");
+async function video(api, event, args, message) {
+    api.setMessageReaction("🕢", event.messageID, (err) => {}, true);
+    try {
+        let title = '';
+        let shortUrl = '';
+        let videoId = '';
 
-    message.reply("🎬 Fetching video formats... Please wait...");
+        const extractShortUrl = async () => {
+            const attachment = event.messageReply.attachments[0];
+            if (attachment.type === "video" || attachment.type === "audio") {
+                return attachment.url;
+            } else {
+                throw new Error("Invalid attachment type.");
+            }
+        };
 
-    exec(`python3 extract_video.py "${url}"`, async (err, stdout) => {
-      if (err) return message.reply("❌ Python error: " + err.message);
+        const getRandomApiKey = () => {
+            const randomIndex = Math.floor(Math.random() * API_KEYS.length);
+            return API_KEYS[randomIndex];
+        };
 
-      let data;
-      try {
-        data = JSON.parse(stdout);
-      } catch {
-        return message.reply("❌ Failed to parse video info.");
-      }
+        if (event.messageReply && event.messageReply.attachments && event.messageReply.attachments.length > 0) {
+            shortUrl = await extractShortUrl();
+            const musicRecognitionResponse = await axios.get(`https://audio-recon-ahcw.onrender.com/kshitiz?url=${encodeURIComponent(shortUrl)}`);
+            title = musicRecognitionResponse.data.title;
+            const searchResponse = await axios.get(`https://youtube-kshitiz-gamma.vercel.app/yt?search=${encodeURIComponent(title)}`);
+            if (searchResponse.data.length > 0) {
+                videoId = searchResponse.data[0].videoId;
+            }
 
-      if (data.error) return message.reply("❌ Error: " + data.error);
+            shortUrl = await shortenURL(shortUrl);
+        } else if (args.length === 0) {
+            message.reply("Please provide a video name or reply to a video or audio attachment.");
+            return;
+        } else {
+            title = args.join(" ");
+            const searchResponse = await axios.get(`https://youtube-kshitiz-gamma.vercel.app/yt?search=${encodeURIComponent(title)}`);
+            if (searchResponse.data.length > 0) {
+                videoId = searchResponse.data[0].videoId;
+            }
 
-      // ফরম্যাট ফিল্টার করো ২৫MB এর নিচে (filesize bytes এ)
-      const formats = data.formats.filter(f => f.filesize && f.filesize < 25 * 1024 * 1024);
+            const videoUrlResponse = await axios.get(`https://mr-kshitizyt.onrender.com/download?id=${encodeURIComponent(videoId)}&apikey=${getRandomApiKey()}`);
+            if (videoUrlResponse.data.length > 0) {
+                shortUrl = await shortenURL(videoUrlResponse.data[0]);
+            }
+        }
 
-      if (!formats.length) return message.reply("❌ No video formats under 25MB found.");
+        if (!videoId) {
+            message.reply("No video found for the given query.");
+            return;
+        }
 
-      // filesize এর মধ্যে সবচেয়ে বড় resolution সিলেক্ট করো
-      const bestFormat = formats.sort((a, b) => (b.height || 0) - (a.height || 0))[0];
+        const downloadResponse = await axios.get(`https://mr-kshitizyt.onrender.com/download?id=${encodeURIComponent(videoId)}&apikey=${getRandomApiKey()}`);
+        const videoUrl = downloadResponse.data[0];
 
-      if (!bestFormat || !bestFormat.url) return message.reply("❌ Suitable video format not found.");
+        if (!videoUrl) {
+            message.reply("Failed to retrieve download link for the video.");
+            return;
+        }
 
-      const titleSlug = data.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-      const folderPath = path.join(__dirname, "..", "downloads", titleSlug);
-      if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath, { recursive: true });
-
-      const ext = bestFormat.ext || "mp4";
-      const filePath = path.join(folderPath, `${titleSlug}.${ext}`);
-
-      message.reply(`⬇️ Downloading ${bestFormat.format_note || bestFormat.height + "p"} (${(bestFormat.filesize / 1048576).toFixed(1)}MB)...`);
-
-      try {
+        const writer = fs.createWriteStream(path.join(__dirname, "cache", `${videoId}.mp4`));
         const response = await axios({
-          url: bestFormat.url,
-          method: "GET",
-          responseType: "stream"
+            url: videoUrl,
+            method: 'GET',
+            responseType: 'stream'
         });
 
-        const writer = fs.createWriteStream(filePath);
         response.data.pipe(writer);
 
-        writer.on("finish", () => {
-          message.reply({
-            body: `✅ Here is your video: ${data.title}`,
-            attachment: fs.createReadStream(filePath)
-          }, () => {
-            // ডাউনলোড ফাইল ও ফোল্ডার ডিলিট করো
-            fs.rmSync(folderPath, { recursive: true, force: true });
-          });
+        writer.on('finish', () => {
+            const videoStream = fs.createReadStream(path.join(__dirname, "cache", `${videoId}.mp4`));
+            message.reply({ body: `📹 Playing: ${title}`, attachment: videoStream });
+            api.setMessageReaction("✅", event.messageID, () => {}, true);
         });
 
-        writer.on("error", (e) => {
-          message.reply("❌ Error writing video file: " + e.message);
+        writer.on('error', (error) => {
+            console.error("Error:", error);
+            message.reply("Error downloading the video.");
         });
-      } catch (e) {
-        return message.reply("❌ Download failed: " + e.message);
-      }
-    });
-  }
+    } catch (error) {
+        console.error("Error:", error);
+        message.reply("An error occurred.");
+    }
+}
+
+module.exports = {
+    config: {
+        name: "video", 
+        version: "1.0",
+        author: "Vex_kshitiz",
+        countDown: 10,
+        role: 0,
+        shortDescription: "play video from youtube",
+        longDescription: "play video from youtube support audio recognition.",
+        category: "music",
+        guide: "{p} video videoname / reply to audio or video" 
+    },
+    onStart: function ({ api, event, args, message }) {
+        return video(api, event, args, message);
+    }
 };
