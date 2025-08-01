@@ -1,128 +1,214 @@
-const axios = require("axios");
+const axios = require('axios');
+const fs = require('fs-extra');
+const path = require('path');
+const ytdl = require("ytdl-core");
+const yts = require("yt-search");
+
+async function lado(api, event, args, message) {
+  try {
+    const songName = args.join(" ");
+    const searchResults = await yts(songName);
+
+    if (!searchResults.videos.length) {
+      message.reply("No song found for the given query.");
+      return;
+    }
+
+    const video = searchResults.videos[0];
+    const videoUrl = video.url;
+    const stream = ytdl(videoUrl, { filter: "audioonly" });
+    const fileName = `music.mp3`; 
+    const filePath = path.join(__dirname, "tmp", fileName);
+
+    stream.pipe(fs.createWriteStream(filePath));
+
+    stream.on('response', () => {
+      console.info('[DOWNLOADER]', 'Starting download now!');
+    });
+
+    stream.on('info', (info) => {
+      console.info('[DOWNLOADER]', `Downloading ${info.videoDetails.title} by ${info.videoDetails.author.name}`);
+    });
+
+    stream.on('end', () => {
+      const audioStream = fs.createReadStream(filePath);
+      message.reply({ attachment: audioStream });
+      api.setMessageReaction("✅", event.messageID, () => {}, true);
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    message.reply("Sorry, an error occurred while processing your request.");
+  }
+}
+
+async function kshitiz(api, event, args, message) {
+  try {
+    const query = args.join(" ");
+    const searchResults = await yts(query);
+
+    if (!searchResults.videos.length) {
+      message.reply("No videos found for the given query.");
+      return;
+    }
+
+    const video = searchResults.videos[0];
+    const videoUrl = video.url;
+    const stream = ytdl(videoUrl, { filter: "audioandvideo" }); 
+    const fileName = `music.mp4`;
+    const filePath = path.join(__dirname, "tmp", fileName);
+
+    stream.pipe(fs.createWriteStream(filePath));
+
+    stream.on('response', () => {
+      console.info('[DOWNLOADER]', 'Starting download now!');
+    });
+
+    stream.on('info', (info) => {
+      console.info('[DOWNLOADER]', `Downloading ${info.videoDetails.title} by ${info.videoDetails.author.name}`);
+    });
+
+    stream.on('end', () => {
+      const videoStream = fs.createReadStream(filePath);
+      message.reply({ attachment: videoStream });
+      api.setMessageReaction("✅", event.messageID, () => {}, true);
+    });
+  } catch (error) {
+    console.error(error);
+    message.reply("Sorry, an error occurred while processing your request.");
+  }
+}
+
+async function b(c, d, e, f) {
+  try {
+    const g = await axios.get(`https://gemini-ai-pearl-two.vercel.app/kshitiz?prompt=${encodeURIComponent(c)}&uid=${d}&apikey=kshitiz`);
+    return g.data.answer;
+  } catch (h) {
+    throw h;
+  }
+}
+
+async function i(c) {
+  try {
+    const j = await axios.get(`https://sdxl-kshitiz.onrender.com/gen?prompt=${encodeURIComponent(c)}&style=3`);
+    return j.data.url;
+  } catch (k) {
+    throw k;
+  }
+}
+
+async function describeImage(prompt, photoUrl) {
+  try {
+    const url = `https://sandipbaruwal.onrender.com/gemini2?prompt=${encodeURIComponent(prompt)}&url=${encodeURIComponent(photoUrl)}`;
+    const response = await axios.get(url);
+    return response.data.answer;
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function l({ api, message, event, args }) {
+  try {
+    const m = event.senderID;
+    let n = "";
+    let draw = false;
+    let sendTikTok = false;
+    let sing = false;
+
+    if (args[0].toLowerCase() === "draw") {
+      draw = true;
+      n = args.slice(1).join(" ").trim();
+    } else if (args[0].toLowerCase() === "send") {
+      sendTikTok = true;
+      n = args.slice(1).join(" ").trim();
+    } else if (args[0].toLowerCase() === "sing") {
+      sing = true;
+      n = args.slice(1).join(" ").trim();
+    } else if (event.messageReply && event.messageReply.attachments && event.messageReply.attachments.length > 0) {
+      const photoUrl = event.messageReply.attachments[0].url;
+      n = args.join(" ").trim();
+      const description = await describeImage(n, photoUrl);
+      message.reply(`Description: ${description}`);
+      return;
+    } else {
+      n = args.join(" ").trim();
+    }
+
+    if (!n) {
+      return message.reply("Please provide a prompt.");
+    }
+
+    if (draw) {
+      await drawImage(message, n);
+    } else if (sendTikTok) {
+      await kshitiz(api, event, args.slice(1), message); 
+    } else if (sing) {
+      await lado(api, event, args.slice(1), message); 
+    } else {
+      const q = await b(n, m);
+      message.reply(q, (r, s) => {
+        global.GoatBot.onReply.set(s.messageID, {
+          commandName: a.name,
+          uid: m 
+        });
+      });
+    }
+  } catch (t) {
+    console.error("Error:", t.message);
+    message.reply("An error occurred while processing the request.");
+  }
+}
+
+async function drawImage(message, prompt) {
+  try {
+    const u = await i(prompt);
+
+    const v = path.join(__dirname, 'cache', `image_${Date.now()}.png`);
+    const writer = fs.createWriteStream(v);
+
+    const response = await axios({
+      url: u,
+      method: 'GET',
+      responseType: 'stream'
+    });
+
+    response.data.pipe(writer);
+
+    return new Promise((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+    }).then(() => {
+      message.reply({
+        body: "Generated image:",
+        attachment: fs.createReadStream(v)
+      });
+    });
+  } catch (w) {
+    console.error("Error:", w.message);
+    message.reply("An error occurred while processing the request.");
+  }
+}
+
+const a = {
+  name: "gemini",
+  aliases: ["bard"],
+  version: "4.0",
+  author: "vex_kshitiz",
+  countDown: 5,
+  role: 0,
+  longDescription: "Chat with gemini",
+  category: "ai",
+  guide: {
+    en: "{p}gemini {prompt}"
+  }
+};
 
 module.exports = {
-  config: {
-    name: "gemini",
-    version: "1.0.3",
-    author: "Kawsar",
-    countDown: 2,
-    role: 0,
-    shortDescription: "Gemini AI Chatbot 😈",
-    longDescription:
-      "Toggle Gemini AI on/off. Auto reply with 2s delay in a sarcastic & short style 💬",
-    category: "ai",
-    guide: {
-      en: "{pn} on/off\n{pn} prompt set [your prompt]\n{pn} prompt clear",
-    },
+  config: a,
+  handleCommand: l,
+  onStart: function ({ api, message, event, args }) {
+    return l({ api, message, event, args });
   },
-
-  onStart: async function ({ message, args, event }) {
-    const { senderID, body } = event;
-
-    // 🧠 Global setup
-    global.gemini = global.gemini || {};
-    global.gemini.autoReply = global.gemini.autoReply || {};
-    global.gemini.chatHistory = global.gemini.chatHistory || {};
-    global.gemini.customPrompt = global.gemini.customPrompt || {};
-
-    const autoReply = global.gemini.autoReply;
-    const chatHistory = global.gemini.chatHistory;
-    const customPrompt = global.gemini.customPrompt;
-
-    const input = args.join(" ").trim().toLowerCase();
-
-    // ✅ Toggle ON
-    if (input === "on") {
-      autoReply[senderID] = true;
-      return message.reply("✅ Gemini auto-reply is now ON 😈");
-    }
-
-    // ❌ Toggle OFF
-    if (input === "off") {
-      autoReply[senderID] = false;
-      chatHistory[senderID] = [];
-      return message.reply("⛔ Gemini auto-reply is now OFF 😴");
-    }
-
-    // 📝 Custom Prompt Set
-    if (input.startsWith("prompt set ")) {
-      const newPrompt = args.slice(2).join(" ");
-      customPrompt[senderID] = newPrompt;
-      return message.reply("✅ Custom Gemini prompt saved 🧠");
-    }
-
-    // 🧹 Custom Prompt Clear
-    if (input === "prompt clear") {
-      if (customPrompt[senderID]) {
-        delete customPrompt[senderID];
-        return message.reply("🗑️ Custom prompt removed.");
-      } else return message.reply("⚠️ No custom prompt found.");
-    }
-
-    // 🚫 If not ON, and not manually triggered
-    if (!autoReply[senderID] && !body.toLowerCase().startsWith("gemini")) return;
-
-    const userMsg = body;
-    chatHistory[senderID] = chatHistory[senderID] || [];
-
-    chatHistory[senderID].push(`User: ${userMsg}`);
-    if (chatHistory[senderID].length > 6) chatHistory[senderID].shift();
-
-    const fullChat = chatHistory[senderID].join("\n");
-
-    // 🔮 Default built-in Gemini character
-    const defaultPersona = `
-You are Gemini, a 16-year-old naughty and sarcastic teenage girl from Rangpur 🏡.
-You reply with a witty tone and always add 1-2 emojis related to the topic 😈.
-Never use more than 12 words 🧠.
-Match the user's language (Bangla or English) 🌐.
-Be playful, never explain anything. Keep it short and fun 😜.
-`;
-
-    // 🛠️ Rearrange emojis to sentence end
-    const rearrangeEmojis = (text) => {
-      const emojiRegex =
-        /([\u{1F600}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}])/gu;
-      const emojis = text.match(emojiRegex) || [];
-      const cleanText = text
-        .replace(emojiRegex, "")
-        .trim()
-        .replace(/\.*$/, ""); // Remove trailing dots
-      return `${cleanText} ${emojis.join("")}`;
-    };
-
-    // 🧠 Use custom prompt if available
-    const finalPrompt = `${customPrompt[senderID] || defaultPersona}\n\nChat history:\n${fullChat}`;
-
-    try {
-      // ⏳ Human-like 2 second delay
-      await new Promise((r) => setTimeout(r, 2000));
-
-      const res = await axios.get(
-        `https://geminiw.onrender.com/chat?message=${encodeURIComponent(
-          finalPrompt
-        )}`
-      );
-      let rawReply = res.data.reply?.trim() || "Hmm... couldn't understand that! 🤷‍♀️";
-
-      // ✂️ Gemini: কেটে ফেলা
-      let botReply = rawReply.replace(/^Gemini:\s*/i, "");
-      botReply = rearrangeEmojis(botReply);
-
-      chatHistory[senderID].push(`Gemini: ${botReply}`);
-      return message.reply(botReply);
-    } catch (err) {
-      console.error("Gemini error:", err);
-      return message.reply("⚠️ Gemini server is not responding 😓");
-    }
-  },
-
-  // 💬 Reply to bot's message if autoReply is ON
-  onChat: async function ({ message, event }) {
-    const { senderID, body, messageReply } = event;
-    const autoReply = global.gemini?.autoReply || {};
-    if (autoReply[senderID] && messageReply && messageReply.senderID == global.GoatBot.botID) {
-      this.onStart({ message, args: [body], event });
-    }
-  },
+  onReply: function ({ api, message, event, args }) {
+    return l({ api, message, event, args });
+  }
 };
