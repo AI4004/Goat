@@ -10,10 +10,6 @@ module.exports.config = {
 
 module.exports.onLoad = async ({ api }) => {
   const timerData = {
-      "12:00:00 PM": {
-        message: " 12:00 PM 🌞 🌟",
-        url: null
-      },
       "01:00:00 AM": {
         message: " 01:00 AM 🌜 🌟",
         url: null
@@ -107,21 +103,39 @@ module.exports.onLoad = async ({ api }) => {
         url: null
       }
   };
-  if(timerData){
-const checkTimeAndSendMessage = async() => { 
-  const currentTime = new Date(Date.now() + 21600000).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
-  }).split(',').pop().trim(); 
-  // const attachment = await global.utils.getStreamFromURL(timerData[currentTime].url);
   
-    if (timerData[currentTime]) global.GoatBot.config.whiteListModeThread.whiteListThreadIds.forEach(async threadID => await api.sendMessage({body: timerData[currentTime].message/*, attachment*/}, threadID)); 
-    setTimeout(checkTimeAndSendMessage, 1200 - new Date().getMilliseconds()); 
-   }; 
-  checkTimeAndSendMessage();
- }
+  if (timerData) {
+    const checkTimeAndSendMessage = async () => {
+      // নির্দিষ্ট টাইমজোন (বাংলাদেশ, UTC+6) এর জন্য সময় নির্ধারণ
+      const now = new Date(Date.now() + 21600000); 
+      const hour = now.getHours();
+      const minute = now.getMinutes();
+      const second = now.getSeconds();
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      
+      // 12-ঘন্টার ফরম্যাটে সময় রূপান্তর
+      const formattedHour = (hour % 12) || 12;
+      const formattedMinute = minute.toString().padStart(2, '0');
+      const formattedSecond = second.toString().padStart(2, '0');
+
+      const currentTime = `${formattedHour}:${formattedMinute}:${formattedSecond} ${ampm}`;
+
+      // যদি বর্তমান সময় timerData-তে থাকে, তাহলে মেসেজ পাঠান
+      if (timerData[currentTime]) {
+        global.GoatBot.config.whiteListModeThread.whiteListThreadIds.forEach(async threadID => {
+          try {
+            await api.sendMessage({ body: timerData[currentTime].message }, threadID);
+          } catch (error) {
+            console.error(`Failed to send message to thread ${threadID}:`, error);
+          }
+        });
+      }
+      
+      // প্রতি সেকেন্ডে চেক করার জন্য টাইমার সেট করা
+      setTimeout(checkTimeAndSendMessage, 1000 - new Date().getMilliseconds());
+    };
+    checkTimeAndSendMessage();
+  }
 };
 
 module.exports.onStart = ({}) => {};
