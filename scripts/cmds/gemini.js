@@ -1,9 +1,8 @@
-Command executed successfully:
 const axios = require("axios");
 
 module.exports = {
   config: {
-    name: "gemini2",
+    name: "gemini",
     version: "1.0.3",
     author: "Kawsar",
     countDown: 2,
