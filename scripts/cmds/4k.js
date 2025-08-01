@@ -1,43 +1,58 @@
+const fs = require("fs");
+const path = require("path");
 const axios = require("axios");
+const tinyurl = require('tinyurl');
 
 module.exports = {
   config: {
     name: "4k",
-    aliases: ["upscale"],
-    version: "1.1",
+    aliases: [],
+    version: "1.0",
+    author: "Vex_kshitiz",
+    countDown: 10,
     role: 0,
-    author: "Team Calyx",
-    countDown: 5,
-    longDescription: "Upscale images to 4K resolution.",
+    shortDescription: "upscale image to 4k",
+    longDescription: "upscale image to 4k",
     category: "image",
     guide: {
-      en: "${pn} reply to an image to upscale it to 4K resolution."
+      en: "{p}4k (reply to an image)",
     }
   },
-  onStart: async function ({ message, event }) {
-    if (!event.messageReply || !event.messageReply.attachments || !event.messageReply.attachments[0]) {
-      return message.reply("Please reply to an image to upscale it.");
-    }
-    const imgurl = encodeURIComponent(event.messageReply.attachments[0].url);
-    const noobs = 'xyz';
-    const upscaleUrl = `https://smfahim.onrender.com/4k?url=${imgurl}`;
-    
-    message.reply("🔄| Processing... Please wait a moment.", async (err, info) => {
+
+  onStart: async function ({ message, event, api }) {
+    api.setMessageReaction("🕐", event.messageID, (err) => {}, true);
+    const { type: a, messageReply: b } = event;
+    const { attachments: c, threadID: d, messageID: e } = b || {};
+
+    if (a === "message_reply" && c) {
+      const [f] = c;
+      const { url: g, type: h } = f || {};
+
+      if (!f || !["photo", "sticker"].includes(h)) {
+        return message.reply("❌ | reply to image by cmdName");
+      }
+
       try {
-        const { data: { image } } = await axios.get(upscaleUrl);
-        const attachment = await global.utils.getStreamFromURL(image, "upscaled-image.png");
+        const response = await axios.get("http://server.gamehosting.vn:25755/taoanhdep/lamnetanh?url=" + encodeURIComponent(g));
+        const imageUrl = response.data.data;
 
-        message.reply({
-          body: "✅| Here is your 4K upscaled image:",
-          attachment: attachment
-        });
-        let processingMsgID = info.messageID;
-        message.unsend(processingMsgID);
+        const imageResponse = await axios.get(imageUrl, { responseType: "arraybuffer" });
 
+        const savePath = path.join(__dirname, "cache");
+        if (!fs.existsSync(savePath)) {
+          fs.mkdirSync(savePath, { recursive: true });
+        }
+
+        const imagePath = path.join(savePath, "lado.png");
+        fs.writeFileSync(imagePath, Buffer.from(imageResponse.data));
+
+        message.reply({ attachment: fs.createReadStream(imagePath) });
       } catch (error) {
         console.error(error);
-        message.reply("❌| There was an error upscaling your image.");
+        message.reply("❌ | api error");
       }
-    });
+    } else {
+      message.reply("❌ | erro");
+    }
   }
 };
