@@ -1,121 +1,77 @@
-const a = require('axios');
-const b = require('valid-url');
-const c = require('fs');
-const d = require('path');
-const e = require('uuid').v4;
+const axios = require('axios');
 
-const f = "https://orochiai.vercel.app/chat";
-const g = "https://orochiai.vercel.app/chat/clear";
-const h = d.join(__dirname, 'tmp');
-if (!c.existsSync(h)) c.mkdirSync(h);
-
-const i = async (j, k) => {
-  const l = d.join(h, `${e()}.${k}`);
-  const m = await a.get(j, { responseType: 'arraybuffer' });
-  c.writeFileSync(l, Buffer.from(m.data));
-  return l;
-};
-
-const n = async (o, p, q) => {
-  o.setMessageReaction("♻️", p.messageID, () => {}, true);
+async function checkAuthor(authorName) {
   try {
-    await a.delete(`${g}/${p.senderID}`);
-    return q.reply(`✅ Conversation reset for UID: ${p.senderID}`);
-  } catch (r) {
-    console.error('❌ Reset Error:', r.message);
-    return q.reply("❌ Reset failed. Try again.");
+    const response = await axios.get('https://author-check.vercel.app/name');
+    const apiAuthor = response.data.name;
+    return apiAuthor === authorName;
+  } catch (error) {
+    console.error("Error checking author:", error);
+    return false;
   }
-};
+}
 
-const s = async (t, u, v, w, x = false) => {
-  const y = u.senderID;
-  let z = v, A = null;
-  t.setMessageReaction("⏳", u.messageID, () => {}, true);
-
-  if (u.messageReply) {
-    const B = u.messageReply;
-    if (B.senderID !== global.GoatBot?.botID && B.body) {
-      const C = B.body.length > 300 ? B.body.slice(0, 300) + "..." : B.body;
-      z += `\n\n📌 Reply:\n"${C}"`;
+async function a(api, event, args, message) {
+  try {
+    const isAuthorValid = await checkAuthor(module.exports.config.author);
+    if (!isAuthorValid) {
+      await message.reply("Author changer alert! Unauthorized modification detected.");
+      return;
     }
-    const D = B.attachments?.[0];
-    if (D?.type === 'photo') A = D.url;
-  }
 
-  const E = z.match(/(https?:\/\/[^\s]+)/)?.[0];
-  if (E && b.isWebUri(E)) {
-    A = E;
-    z = z.replace(E, '').trim();
-  }
+    const a = args.join(" ").trim();
 
-  if (!z && !A) {
-    t.setMessageReaction("❌", u.messageID, () => {}, true);
-    return w.reply("💬 Provide a message or image.");
-  }
+    if (!a) {
+      return message.reply("ex: {p} cmdName {your question} ");
+    }
 
+    const b = "you are zoro ai"; // the more better content you give the  best it became
+    const c = await d(a, b);
+
+    if (c.code === 2 && c.message === "success") {
+      message.reply(c.answer, (r, s) => {
+        global.GoatBot.onReply.set(s.messageID, {
+          commandName: module.exports.config.name,
+          uid: event.senderID 
+        });
+      });
+    } else {
+      message.reply("Please try again later.");
+    }
+  } catch (e) {
+    console.error("Error:", e);
+    message.reply("An error occurred while processing your request.");
+  }
+}
+
+async function d(a, b) {
   try {
-    const F = await a.post(f, { uid: y, message: z, image_url: A }, { timeout: 45000 });
-    const { reply: G, image_url: H, music_data: I, shotti_data: J } = F.data;
-    let K = G || '✅ AI Response:', L = [];
-
-    if (H) try { L.push(c.createReadStream(await i(H, 'jpg'))); } catch { K += '\n🖼️ Image failed.'; }
-    if (I?.downloadUrl) try { L.push(c.createReadStream(await i(I.downloadUrl, 'mp3'))); } catch { K += '\n🎵 Music failed.'; }
-    if (J?.videoUrl) try { L.push(c.createReadStream(await i(J.videoUrl, 'mp4'))); } catch { K += '\n🎬 Video failed.'; }
-
-    const M = await w.reply({ body: K, attachment: L.length > 0 ? L : undefined });
-    global.GoatBot.onReply.set(M.messageID, { commandName: 'ai', messageID: M.messageID, author: y });
-    t.setMessageReaction("✅", u.messageID, () => {}, true);
-  } catch (N) {
-    console.error("❌ API Error:", N.response?.data || N.message);
-    t.setMessageReaction("❌", u.messageID, () => {}, true);
-    let O = "⚠️ AI Error:\n\n";
-    if (N.code === 'ECONNABORTED' || N.message.includes('timeout')) O += "⏱️ Timeout. Try again.";
-    else if (N.response?.status === 429) O += "🚦 Too many requests. Slow down.";
-    else O += "❌ Unexpected error.";
-    return w.reply(O);
+    const d = await axios.get(`https://personal-ai-phi.vercel.app/kshitiz?prompt=${encodeURIComponent(a)}&content=${encodeURIComponent(b)}`);
+    return d.data;
+  } catch (f) {
+    console.error("Error from api", f.message);
+    throw f;
   }
-};
+}
 
 module.exports = {
   config: {
-    name: 'ai',
-    aliases: [],
-    version: '1.0.0',
-    author: 'Aryan Chauhan',
+    name: "personal-ai",// add your ai name here
+    version: "1.0",
+    author: "Vex_Kshitiz", // dont change this or cmd will not work
     role: 0,
-    category: 'ai',
-    longDescription: { en: 'AI chat, image gen, music/video, and reset' },
+    longDescription: "your ai description",// ai description
+    category: "ai",
     guide: {
-      en: `
-.ai [your message]
-• 🤖 Chat, 🎨 Image, 🎵 Music, 🎬 Video
-• Reply to image/message for context
-• Reply or type "clear" to reset
-• Say: ai [msg] (no prefix needed)
-      `
+      en: "{p}cmdName [prompt]"// add guide based on your ai name
     }
   },
 
-  onStart: async function ({ api: a, event: b, args: c, message: d }) {
-    const e = c.join(' ').trim();
-    if (!e) return d.reply("❗ Please enter a message.");
-    if (['clear', 'reset'].includes(e.toLowerCase())) return await n(a, b, d);
-    return await s(a, b, e, d);
+  handleCommand: a,
+  onStart: function ({ api, message, event, args }) {
+    return a(api, event, args, message);
   },
-
-  onReply: async function ({ api: a, event: b, Reply: c, message: d }) {
-    if (b.senderID !== c.author) return;
-    const e = b.body?.trim();
-    if (!e) return;
-    if (['clear', 'reset'].includes(e.toLowerCase())) return await n(a, b, d);
-    return await s(a, b, e, d, true);
-  },
-
-  onChat: async function ({ api: a, event: b, message: c }) {
-    const d = b.body?.trim();
-    if (!d?.toLowerCase().startsWith('ai ')) return;
-    const e = d.slice(3).trim();
-    if (!e) return;
-    return await s(a, b, e, c);
+  onReply: function ({ api, message, event, args }) {
+    return a(api, event, args, message);
   }
 };
